@@ -39,7 +39,7 @@ const canObserve = (value: any): boolean => {
     !nonReactiveValues.has(value)
   )
 }
-// 实现响应式的核心
+// 实现响应式的核心, 传入对象，返回 UnwrapNestedRefs 类型
 export function reactive<T extends object>(target: T): UnwrapNestedRefs<T>
 export function reactive(target: object) {
   // if trying to observe a readonly proxy, return the readonly version.
@@ -47,6 +47,7 @@ export function reactive(target: object) {
     return target
   }
   // target is explicitly marked as readonly by user
+  // target 被用户显示标记为已读
   if (readonlyValues.has(target)) {
     return readonly(target)
   }
@@ -67,6 +68,7 @@ export function readonly<T extends object>(
   if (reactiveToRaw.has(target)) {
     target = reactiveToRaw.get(target)
   }
+  // 保存代理数据和原始数据，返回 new Proxy 代理后的对象
   return createReactiveObject(
     target,
     rawToReadonly,
@@ -75,7 +77,7 @@ export function readonly<T extends object>(
     readonlyCollectionHandlers
   )
 }
-
+// 创造响应式对象
 function createReactiveObject(
   target: any,
   toProxy: WeakMap<any, any>,
@@ -83,6 +85,7 @@ function createReactiveObject(
   baseHandlers: ProxyHandler<any>,
   collectionHandlers: ProxyHandler<any>
 ) {
+  // 如果不是对象
   if (!isObject(target)) {
     if (__DEV__) {
       console.warn(`value cannot be made reactive: ${String(target)}`)
@@ -90,6 +93,7 @@ function createReactiveObject(
     return target
   }
   // target already has corresponding Proxy
+  // 如果 target 已经被 proxy 过
   let observed = toProxy.get(target)
   if (observed !== void 0) {
     return observed
@@ -99,13 +103,17 @@ function createReactiveObject(
     return target
   }
   // only a whitelist of value types can be observed.
+  // 只能观察到值类型的白名单
   if (!canObserve(target)) {
     return target
   }
-  const handlers = collectionTypes.has(target.constructor)
+  // Set WeakSet Map WeakMap 使用到 collectionHandlers，
+  // 其余情况使用 baseHandlers
+  const handlers = collectionTypes.has(target.constructor) // target.constructor 构造函数
     ? collectionHandlers
     : baseHandlers
-  observed = new Proxy(target, handlers)
+  // 核心
+  observed = new Proxy(target, handlers) // 生成 proxy 实例
   toProxy.set(target, observed)
   toRaw.set(observed, target)
   if (!targetMap.has(target)) {

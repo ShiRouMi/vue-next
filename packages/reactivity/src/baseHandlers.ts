@@ -10,7 +10,16 @@ const builtInSymbols = new Set(
     .map(key => (Symbol as any)[key])
     .filter(isSymbol)
 )
-
+/*
+劫持了 get 和 set 行为，
+这两个行为同时也能原生劫持数组下标修改值及对象新增属性的行为
+*/
+// 深度侦测数据
+/*
+当对多层级的对象操作时，set 并不能感知到，但是 get 会触发，
+ 于此同时，利用 Reflect.get() 返回的“多层级对象中内层” ，
+ 再对“内层数据”做一次代理。
+*/
 function createGetter(isReadonly: boolean) {
   return function get(target: any, key: string | symbol, receiver: any) {
     const res = Reflect.get(target, key, receiver)
@@ -21,7 +30,9 @@ function createGetter(isReadonly: boolean) {
       return res.value
     }
     track(target, OperationTypes.GET, key)
-    return isObject(res) // 判断Reflect返回的数据是否是对象，如果是对象，则再走一次 proxy ，从而获得了对对象内部的侦测。
+    return isObject(res) 
+    // 判断Reflect返回的数据是否是对象，
+    //如果是对象，则再走一次 proxy ，从而获得了对对象内部的侦测。
       ? isReadonly
         ? // need to lazy access readonly and reactive here to avoid
           // circular dependency
@@ -46,6 +57,7 @@ function set(
   }
   const result = Reflect.set(target, key, value, receiver)
   // don't trigger if target is something up in the prototype chain of original
+  // 如果 target 是原型链上的某个属性，那么不触发
   if (target === toRaw(receiver)) {
     /* istanbul ignore else */
     if (__DEV__) {
@@ -57,6 +69,7 @@ function set(
       }
     } else {
       // 避免多次被触发
+      // 判断 key 是否为 target 自身属性，以及设置val是否跟target[key]相等 
       if (!hadKey) {
         trigger(target, OperationTypes.ADD, key)
       } else if (value !== oldValue) {
