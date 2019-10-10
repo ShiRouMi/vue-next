@@ -8,7 +8,7 @@ import {
   markNonReactive
 } from '../src/index'
 import { ITERATE_KEY } from '../src/effect'
-
+// 监听响应式对象的变化，触发监听函数的执行
 describe('reactivity/effect', () => {
   it('should run the passed function once (wrapped by a effect)', () => {
     const fnSpy = jest.fn(() => {})

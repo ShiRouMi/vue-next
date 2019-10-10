@@ -3,7 +3,9 @@ import { mockWarn } from '@vue/runtime-test'
 
 describe('reactivity/reactive', () => {
   mockWarn()
-
+  /*
+  reactive 接收对象，返回 UnwrapNestedRefs 类型
+  */
   test('Object', () => {
     const original = { foo: 1 }
     const observed = reactive(original)
@@ -32,7 +34,7 @@ describe('reactivity/reactive', () => {
     // ownKeys
     expect(Object.keys(observed)).toEqual(['0'])
   })
-
+// 克隆的响应式数组应该指向观察的值
   test('cloned reactive Array should point to observed values', () => {
     const original = [{ foo: 1 }]
     const observed = reactive(original)
@@ -41,7 +43,7 @@ describe('reactivity/reactive', () => {
     expect(clone[0]).not.toBe(original[0])
     expect(clone[0]).toBe(observed[0])
   })
-
+// 嵌套情况
   test('nested reactives', () => {
     const original = {
       nested: {
@@ -54,7 +56,8 @@ describe('reactivity/reactive', () => {
     expect(isReactive(observed.array)).toBe(true)
     expect(isReactive(observed.array[0])).toBe(true)
   })
-
+// 响应式，通过 reactive 操作后的数据，对其进行设置删除操作，能同步影响到原始数据
+  // 另外：直接修改原始数据，响应数据也能获取的最新数据。
   test('observed value should proxy mutations to original (Object)', () => {
     const original: any = { foo: 1 }
     const observed = reactive(original)
@@ -67,7 +70,7 @@ describe('reactivity/reactive', () => {
     expect('foo' in observed).toBe(false)
     expect('foo' in original).toBe(false)
   })
-
+ // 使用 proxy 可以劫持数组的所有数据变更
   test('observed value should proxy mutations to original (Array)', () => {
     const original: any[] = [{ foo: 1 }, { bar: 2 }]
     const observed = reactive(original)
@@ -86,7 +89,7 @@ describe('reactivity/reactive', () => {
     expect(observed[2]).toBe(reactiveValue)
     expect(original[2]).toBe(value)
   })
-
+// vue@3的响应式数据的属性值终于可以随时添加删除了。
   test('setting a property with an unobserved value should wrap with reactive', () => {
     const observed = reactive<{ foo?: object }>({})
     const raw = {}
@@ -94,7 +97,9 @@ describe('reactivity/reactive', () => {
     expect(observed.foo).not.toBe(raw)
     expect(isReactive(observed.foo)).toBe(true)
   })
-
+// 以下两个单测说明了
+// 对于同一个原始数据，执行多次 reactive 或者嵌套执行 reactive ,
+// 返回的结果都是同一个相应数据
   test('observing already observed value should return same Proxy', () => {
     const original = { foo: 1 }
     const observed = reactive(original)
@@ -108,7 +113,7 @@ describe('reactivity/reactive', () => {
     const observed2 = reactive(original)
     expect(observed2).toBe(observed)
   })
-
+// 不应使用代理污染原始对象
   test('should not pollute original object with Proxies', () => {
     const original: any = { foo: 1 }
     const original2 = { bar: 2 }
@@ -118,14 +123,16 @@ describe('reactivity/reactive', () => {
     expect(observed.bar).toBe(observed2)
     expect(original.bar).toBe(original2)
   })
-
+// 通过 toRaw, 将响应数据返回原始数据
+  // 说明 reactive 文件内还需要维持另外一个 WeakMap 做反向映射。
+  // ???
   test('unwrap', () => {
     const original = { foo: 1 }
     const observed = reactive(original)
     expect(toRaw(observed)).toBe(original)
     expect(toRaw(original)).toBe(original)
   })
-
+ // 不可观察的值
   test('non-observable values', () => {
     const assertValue = (value: any) => {
       reactive(value)
@@ -133,7 +140,7 @@ describe('reactivity/reactive', () => {
         `value cannot be made reactive: ${String(value)}`
       ).toHaveBeenWarnedLast()
     }
-
+// JS 6大基本数据类型
     // number
     assertValue(1)
     // string
@@ -147,7 +154,7 @@ describe('reactivity/reactive', () => {
     // symbol
     const s = Symbol()
     assertValue(s)
-
+// 以下内置对象不会保存，返回原始值
     // built-ins should work and return same value
     const p = Promise.resolve()
     expect(reactive(p)).toBe(p)
@@ -156,7 +163,8 @@ describe('reactivity/reactive', () => {
     const d = new Date()
     expect(reactive(d)).toBe(d)
   })
-
+// 通过 markNonReactive 包裹的数据，不会成为响应式数据
+  // 真实业务中应该使用比较少，做某些特殊的性能优化时可能会使用到。
   test('markNonReactive', () => {
     const obj = reactive({
       foo: { a: 1 },

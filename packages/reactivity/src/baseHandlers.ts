@@ -21,7 +21,7 @@ function createGetter(isReadonly: boolean) {
       return res.value
     }
     track(target, OperationTypes.GET, key)
-    return isObject(res)
+    return isObject(res) // 判断Reflect返回的数据是否是对象，如果是对象，则再走一次 proxy ，从而获得了对对象内部的侦测。
       ? isReadonly
         ? // need to lazy access readonly and reactive here to avoid
           // circular dependency
@@ -56,6 +56,7 @@ function set(
         trigger(target, OperationTypes.SET, key, extraInfo)
       }
     } else {
+      // 避免多次被触发
       if (!hadKey) {
         trigger(target, OperationTypes.ADD, key)
       } else if (value !== oldValue) {

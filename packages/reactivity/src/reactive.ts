@@ -18,8 +18,8 @@ export type KeyToDepMap = Map<string | symbol, Dep>
 export const targetMap = new WeakMap<any, KeyToDepMap>()
 
 // WeakMaps that store {raw <-> observed} pairs.
-const rawToReactive = new WeakMap<any, any>()
-const reactiveToRaw = new WeakMap<any, any>()
+const rawToReactive = new WeakMap<any, any>()// 存储原始数据
+const reactiveToRaw = new WeakMap<any, any>()// 存储可响应数据
 const rawToReadonly = new WeakMap<any, any>()
 const readonlyToRaw = new WeakMap<any, any>()
 
@@ -39,7 +39,7 @@ const canObserve = (value: any): boolean => {
     !nonReactiveValues.has(value)
   )
 }
-
+// 实现响应式的核心
 export function reactive<T extends object>(target: T): UnwrapNestedRefs<T>
 export function reactive(target: object) {
   // if trying to observe a readonly proxy, return the readonly version.
